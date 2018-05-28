@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>我的私人日记</title>
+  <link rel="stylesheet" type="text/css" href="css/style.css" />
+  <link rel="stylesheet" href="css/mdui.min.css">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+</head>
+
+
+
+<body class="mdui-theme-primary-blue-grey">
+  <div class="mdui-toolbar mdui-color-theme mdui-appbar-fixed" style="z-index: 1000;">
+    <span class="mdui-typo-title" id="name" style="text-align: center">我的每日状态</span>
+    <div class="mdui-toolbar-spacer"></div>
+
+  </div>
+
+
+  <p>body 元素的内容会显示在浏览器中。</p>
+  <p>title 元素的内容会显示在浏览器的标题栏中。</p>
+
+  <button id="add" onclick="myFunction('test')">add</button>
+
+  <div class="container">
+      <div class="row clearfix">
+          <div class="col-md-12 column">
+
+              <div class="container-fluid">
+                      <div class="row-fluid">
+                          <div class="span12">
+                               <span class="label">分隔符</span>
+                          </div>
+                      </div>
+                  </div>
+
+              <div class="input-group col-md-3" style="margin-top:20p;margin-left:20px">
+                  <input type="text" class="form-control"  placeholder="查询日志日期,e.g. 2018-05-18" id=search_title />
+                  <span class="input-group-btn">
+                      <button class="btn btn-info btn-search" id=search >查找</button>
+
+                  </span>
+              </div>
+
+
+
+          </div>
+          <div class="row clearfix">
+              <div class="col-md-12 column">
+              </div>
+          </div>
+
+          <div style="text-align: center">
+              <h1 id=title></h1>
+          </div>
+
+          <div id=content style="margin-left:20px"></div>
+
+          <div id=author style="text-align: right"></div>
+
+
+
+          <div class="container-fluid">
+                  <div class="row-fluid">
+                      <div class="span12">
+                           <span class="label">分隔符</span>
+                      </div>
+                  </div>
+              </div>
+
+          <div class="input-group" style="margin-left:20px">
+              <span class="input-group-addon">日记日期</span>
+              <input type="text" class="form-control" placeholder="输入日期 YYYY-MM-DD e.g. 2018-05-18" id=input_title>
+          </div>
+          <div class="input-group" style="margin-top:20px ;margin-left:20px">
+              <span class="input-group-addon"> 正文 </span>
+              <input type="text" class="form-control" placeholder="输入正文" id=input_content>
+          </div>
+          <div  style="text-align: right;margin-top:20px ">
+                  <button class="btn btn-info" id=post style="text-align: center" onclick="myFunction('test')">提交</button>
+          </div>
+
+
+      </div>
+
+
+
+
+
+<div id="myModal" class="hide">
+  <div style="text-align: center; margin-top: 10px;">
+    <textarea id="comment" cols="47" rows="4"></textarea>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script src="js/mdui.min.js"></script>
+<script src="js/jquery-3.3.1.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/nebPay.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/nebulas.js"></script>
+<script src="js/layer/layer.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
+<script>
+
+  var NebPay = require("nebpay");
+  var nebPay = new NebPay();
+
+  var nebulas = require("nebulas"),
+      Account = nebulas.Account,
+      neb = new nebulas.Neb();
+  neb.setRequest(new nebulas.HttpRequest("https://testnet.nebulas.io"));
+
+
+
+  //检查扩展是否已安装，如果安装了扩展，“webExtensionWallet”将被注入到web页面中
+  if(typeof(webExtensionWallet) === "undefined") {
+      $("#noExtension").show();
+  }
+
+  var dappAddress = "n1q4gGnzYmxRYjGQFo6TMMhDxN7ALpJsmuC";
+
+
+  $("#search").click(function () {
+      if (!$("#search_title").val()) {
+          alert('搜索标题不能为空');
+          return;
+      }
+  })
+
+
+
+
+  function cbPush(resp) {
+      $("#comment").val('')
+  }
+
+  function myFunction(fileName) {
+
+      layer.open({
+          title:"简短影评",
+          type: 1,
+          scrollbar: false,
+          area:['400px', '200px'],
+          content: $('#myModal'),
+          btn: ['确定', '取消'],
+          yes: function(index, layero){
+            if($("#comment").val() == '') {
+                layer.alert('影评不能为空哟！');
+                return;
+            } else if($("#comment").val().length > 200) {
+                layer.alert('影评太长了！');
+                return;
+            }
+            var comment = $("#comment").val();
+            var submitTime = getDateStr(new Date());
+            var to = dappAddress;
+            var value = "0";
+            var callFunction = "saveComment";
+            var callArgs = [];
+            callArgs.push(fileName);
+            callArgs.push(comment);
+            callArgs.push(submitTime);
+            serialNumber = nebPay.call(to, value, callFunction, JSON.stringify(callArgs), {
+                listener: cbPush
+            });
+            layer.close(index);
+          },btn2: function(index, layero){
+              layer.close(index);
+          },cancel: function(){
+              layer.close();
+          }
+      });
+      $('#myModal').removeClass("hide");
+      intervalQuery = setInterval(function () {
+          funcIntervalQuery();
+      }, 5000);
+      layer.close();
+  }
+
+  function addDiary(){
+
+  }
+
+  function funcIntervalQuery() {
+      nebPay.queryPayInfo(serialNumber)   //search transaction result from server (result upload to server by app)
+          .then(function (resp) {
+              console.log("tx result: " + resp)   //resp is a JSON string
+              var respObject = JSON.parse(resp)
+              if(respObject.code === 0){
+                  alert(`succeed!`)
+                  clearInterval(intervalQuery)
+              }
+          })
+          .catch(function (err) {
+              console.log(err);
+          });
+  }
+
+  function getDateStr(date) {
+      var y = date.getFullYear();
+      var m = date.getMonth() + 1;
+      m = m < 10 ? ('0' + m) : m;
+      var d = date.getDate();
+      d = d < 10 ? ('0' + d) : d;
+      var h = date.getHours();
+      h= h < 10 ? ('0' + h) : h;
+      var minute = date.getMinutes();
+      minute = minute < 10 ? ('0' + minute) : minute;
+      var second=date.getSeconds();
+      second = second < 10 ? ('0' + second) : second;
+      return y + '-' + m + '-' + d+' '+h+':'+minute+':'+second;
+  }
+
+
+</script>
+
+</body>
+</html>
